@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- ==========================================================================
+       META BÁSICOS (SEO, responsive, PWA)
+       ==========================================================================
+       viewport-fit=cover + meta theme-color → soporte a notch (iOS) + acento
+       de la barra de estado en modo standalone.                                -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="SIGN-VOICE AI: traducción bidireccional de lengua de señas (LSE/ASL) entre texto, voz y avatar. PWA offline-first para accesibilidad." />
+  <meta name="theme-color" content="#05070d" />
+
+  <!-- =============================================================================
+       PWA: manifiesto + iconos (apple-touch para iOS)
+       ============================================================================= -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
+
+  <!-- =============================================================================
+       ESTILOS
+       ============================================================================= -->
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- =============================================================================
+       TÍTULO
+       ============================================================================= -->
+  <title>SIGN-VOICE AI — Puente de Lengua de Señas</title>
+
+  <!-- =============================================================================
+       PRELOADS CRÍTICOS (no bloquean render, pero anticipan):
+         - estilos ya cargados; aquí reservados para futuros assets (WASM/JSON)
+       ============================================================================= -->
+</head>
+<body class="app" data-motion="auto" data-contrast="auto" data-textsize="md">
+  <!-- =============================================================================
+       SKIP-LINK (ACCESIBILIDAD)
+       -----------------------------------------------------------------------------
+       Primer elemento enfocable: permite saltar directamente a #main para usuarios
+       de teclado y lectores de pantalla. No requiere JS.                           -->
+  <a class="skip-link sr-only-focusable" href="#main">Saltar al contenido principal</a>
+
+  <!-- =============================================================================
+       HUD SUPERIOR (estático, persistente)
+       -----------------------------------------------------------------------------
+       Marca + estado de red (aria-live="polite" porque el cambio no requiere
+       atención inmediata, pero debe anunciarse) + herramientas rápidas.
+       ============================================================================= -->
+  <header class="hud" role="banner">
+    <div class="hud__brand">
+      <!-- Logo monocromático SVG: ligero, escalable y cacheable por SW -->
+      <svg class="hud__logo" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="gl" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#00f0ff"/>
+            <stop offset="55%" stop-color="#7b2bff"/>
+            <stop offset="100%" stop-color="#ff2d95"/>
+          </linearGradient>
+        </defs>
+        <circle cx="256" cy="256" r="220" fill="none" stroke="url(#gl)" stroke-width="18" opacity="0.9"/>
+        <g fill="url(#gl)">
+          <path d="M256 104l-20 46 36 20-28 64 44-10-12 52 38-16-10 42 18-6-14 52 24-10-20 62-34-58 16 6-18-46-30 14 10-42-26 12 14-56-28 16 20-62-36 18 36-76z"/>
+          <circle cx="166" cy="156" r="12"/>
+          <circle cx="346" cy="156" r="12"/>
+        </g>
+      </svg>
+      <div>
+        <h1 class="hud__name">SIGN-VOICE AI</h1>
+        <p class="hud__tag">Puente de Lengua de Señas · LSE/ASL · Offline-first</p>
+      </div>
+    </div>
+
+    <!-- Estado de red: output no interactivo con aria-live="polite".           -->
+    <output id="net-state" class="net" data-state="checking" aria-live="polite" aria-label="Estado de red">
+      <span class="net__dot" aria-hidden="true"></span>
+      <span class="net__label">Comprobando conexión…</span>
+    </output>
+
+    <div class="hud__tools row-wrap">
+      <!-- Indicador de IA offline (bajo demanda): aparece cuando svai-ai-v1 tiene algo -->
+      <span id="ai-offline-chip" class="chip chip--cyan" aria-live="polite" hidden>
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="currentColor"/></svg>
+        Motor IA offline activo
+      </span>
+      <!-- Botón "PWA instalar": solo visible cuando beforeinstallprompt existe -->
+      <button id="btn-pwa-install" class="btn btn--ghost btn--sm" type="button" hidden>
+        <svg class="btn__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.5 1v8.3L4.8 6.6 4 7.4 8 11.4 12 7.4 11.2 6.6 8.5 9.3V1h-1zM3 11v3h10v-3h-1v2H4v-2H3z"/></svg>
+        Instalar app
+      </button>
+      <button id="btn-help" class="icon-btn" type="button" title="Atajos de teclado" aria-label="Ver atajos de teclado">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm2-4.5c-.5.5-1 .8-1 1.5v.5H7v-.5c0-1 .5-1.5 1-2 .5-.4.8-.8.8-1.3a1.2 1.2 0 0 0-1.2-1.2c-.7 0-1.1.4-1.1 1H5.2c0-1.3 1-2.2 2.2-2.2 1.3 0 2.3 1 2.3 2.3 0 1-.5 1.5-1.2 2.2z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- =============================================================================
+       NAVEGACIÓN POR PESTAÑAS (tabs)
+       -----------------------------------------------------------------------------
+       Un único nav con 5 pestañas. El estado se sincroniza con los paneles.
+       Atajos: 1–5 y S/M/E (implementados en JS). aria-selected es el único
+       indicador accesible de la pestaña activa.                                   -->
+  <nav class="tabs" role="tablist" aria-label="Paneles de la aplicación">
+    <button id="tab-signs" class="tab" role="tab" aria-selected="true" aria-controls="panel-signs" data-panel="signs" type="button">
+      <svg class="tab__icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v4H4zM6 10h8v2H6zM7 14h6v2H7z" opacity="0.85"/><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h13A1.5 1.5 0 0 1 18 3.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 16.5v-13zm1.5-.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13z"/></svg>
+      <span>Reconocer señas</span>
+      <kbd class="tab__key">1</kbd>
+    </button>
+    <button id="tab-chat" class="tab" role="tab" aria-selected="false" aria-controls="panel-chat" data-panel="chat" type="button">
+      <svg class="tab__icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.8a6.2 6.2 0 0 0-5.6 9.1L2 16.2l5.3-2.1A6.2 6.2 0 1 0 10 1.8zm0 11.2a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+      <span>Chat + Avatar</span>
+      <kbd class="tab__key">2</kbd>
+    </button>
+    <button id="tab-voice" class="tab" role="tab" aria-selected="false" aria-controls="panel-voice" data-panel="voice" type="button">
+      <svg class="tab__icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12a2 2 0 0 0 2-2V6a2 2 0 0 0-4 0v4a2 2 0 0 0 2 2zm3-2a3 3 0 1 1-6 0H5a5 5 0 0 0 10 0h-2zM9 3h2v2H9z"/></svg>
+      <span>Voz al avatar</span>
+      <kbd class="tab__key">3</kbd>
+    </button>
+    <button id="tab-sos" class="tab" role="tab" aria-selected="false" aria-controls="panel-sos" data-panel="sos" type="button">
+      <svg class="tab__icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zm0 1a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM9 6h2v3h2v2h-2v3H9v-3H7V9h2z"/></svg>
+      <span>SOS</span>
+      <kbd class="tab__key">4</kbd>
+    </button>
+    <button id="tab-settings" class="tab" role="tab" aria-selected="false" aria-controls="panel-settings" data-panel="settings" type="button">
+      <svg class="tab__icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 6.8A3.2 3.2 0 1 0 10 13a3.2 3.2 0 0 0 0-6.2zm7 3.2c0-.3 0-.6-.1-.8l2-1.6-1.2-2.1-2.3.9a6 6 0 0 0-1.4-.8l-.3-2.4h-2.4l-.3 2.4a6 6 0 0 0-1.4.8l-2.3-.9L6.1 7.6l2 1.6c-.1.3-.1.6-.1.8s0 .6.1.8l-2 1.6 1.2 2.1 2.3-.9a6 6 0 0 0 1.4.8l.3 2.4h2.4l.3-2.4a6 6 0 0 0 1.4-.8l2.3.9 1.2-2.1-2-1.6c.1-.3.1-.6.1-.8z"/></svg>
+      <span>Ajustes</span>
+      <kbd class="tab__key">5</kbd>
+    </button>
+  </nav>
+
+  <!-- =============================================================================
+       CONTENIDO PRINCIPAL
+       ============================================================================= -->
+  <main id="main" class="app__main" role="main" tabindex="-1">
+
+    <!-- ###########################################################################
+         PANEL 1: RECONOCER SEÑAS (Señas → Texto/Voz)
+         ########################################################################### -->
+    <section id="panel-signs" class="panel" role="tabpanel" aria-labelledby="tab-signs" aria-live="polite">
+      <header class="panel__head">
+        <div class="panel__title">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v6H3V4zm2 1v4h14V5H5zm1 8h4v2H6v-2zm6 0h6v2h-6v-2zm-6 4h12v2H6v-2z"/></svg>
+          <h2>Reconocedor de lengua de señas</h2>
+        </div>
+        <div class="panel__desc">
+          <p>Visa el vídeo con cámara, analiza gestos y convierte las letras a texto. Commite solo con alta confianza y permite corregir antes de enviar al avatar.</p>
+        </div>
+      </header>
+
+      <div class="panel__body split">
+        <!-- COLUMNA IZQUIERDA: ESCENARIO DE VÍDEO -->
+        <article class="stack-2">
+          <div class="stage" id="sign-stage" data-scanning="off">
+            <video class="stage__video" id="sign-video" autoplay playsinline muted aria-hidden="true"></video>
+            <canvas class="stage__overlay" id="sign-canvas" aria-hidden="true"></canvas>
+            <div class="stage__frame" aria-hidden="true"></div>
+            <div class="stage__scan" aria-hidden="true"></div>
+            <div class="stage__controls">
+              <button id="btn-camera" class="icon-btn" type="button" title="Iniciar/cerrar cámara" aria-label="Iniciar cámara">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5l1.5-2h7L13 5h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1zm5 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+              </button>
+              <button id="btn-flip" class="icon-btn" type="button" title="Espejo ON/OFF" aria-label="Activar/desactivar espejo">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l5 4H3l5-4zm0 12l-5-4h10l-5 4z"/></svg>
+              </button>
+            </div>
+            <div id="stage-note" class="stage__note" hidden role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="stack-2">
+            <div class="spread">
+              <div>
+                <div class="kicker">Letras detectadas (provisionales)</div>
+                <div class="buffer" id="letter-buffer" aria-live="polite" aria-label="Letras detectadas provisionalmente">
+                  <span class="buffer__hint">Sin detecciones aún. Enfoca la mano frente a la cámara.</span>
+                </div>
+              </div>
+            </div>
+            <div class="confidence">
+              <span>Confianza</span>
+              <div class="confidence__bar" aria-hidden="true">
+                <div class="confidence__fill" id="conf-fill"></div>
+              </div>
+              <span class="confidence__value"><span id="conf-value">0</span>%</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- COLUMNA DERECHA: TEXTO RECONOCIDO -->
+        <aside class="stack-2">
+          <div class="card">
+            <div class="kicker">Texto comprometido</div>
+            <textarea id="recogn-text" class="textarea out-text" placeholder="El texto reconocido aparecerá aquí. Puedes editarlo antes de enviarlo al chat o reproducirlo por voz." aria-label="Texto reconocido comprometido"></textarea>
+            <div class="row-wrap" style="margin-top: var(--sp-3);">
+              <button id="btn-send-chat" class="btn btn--primary" type="button">
+                <svg class="btn__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 2l13 6-13 6V9.2L11 8 1.5 6.8V2z"/></svg>
+                Enviar al chat + avatar
+              </button>
+              <button id="btn-speak-rec" class="btn btn--ghost" type="button">
+                <svg class="btn__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a2 2 0 0 1 2 2v4a2 2 0 0 1-4 0V4a2 2 0 0 1 2-2zm3 4a3 3 0 1 1-6 0H3a5 5 0 0 0 10 0H11z"/></svg>
+                Reproducir por voz
+              </button>
+              <button id="btn-clear-rec" class="btn btn--ghost" type="button">Limpiar</button>
+              <span id="rec-status" class="muted mono" aria-live="polite"></span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="kicker">Modo IA</div>
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Descargar motor de IA (19 MB) para uso offline</div>
+                <div class="setting__desc">MediaPipe HandLandmarker: se descarga bajo demanda y queda en la caché svai-ai-v1.</div>
+              </div>
+              <div class="setting__control row-wrap">
+                <span id="ai-download-status" class="muted mono">No descargado</span>
+                <button id="btn-ai-download" class="btn btn--sm" type="button">Descargar</button>
+                <button id="btn-ai-clear" class="btn btn--ghost btn--sm" type="button">Liberar</button>
+              </div>
+            </div>
+            <div class="progress" aria-hidden="true">
+              <div class="progress__fill" id="ai-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ###########################################################################
+         PANEL 2: CHAT + AVATAR (Usuario → Persona Sorda)
+         ########################################################################### -->
+    <section id="panel-chat" class="panel" role="tabpanel" aria-labelledby="tab-chat" hidden>
+      <header class="panel__head">
+        <div class="panel__title">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v10H6.4L4 16.6V4zm2 2v7.4L6.6 12H18V6H6z"/></svg>
+          <h2>Chat inclusivo + Avatar reproductor</h2>
+        </div>
+        <div class="panel__desc">
+          <p>Escribe o pega texto. Antes de reproducirse, el filtro de modismos neutraliza regionalismos. El avatar desglosa el texto en señas letra por letra (o secuencia definida).</p>
+        </div>
+      </header>
+      <div class="panel__body split--avatar">
+        <!-- COLUMNA IZQUIERDA: AVATAR -->
+        <article class="stack-2">
+          <div class="avatar" id="avatar-stage" aria-label="Avatar reproductor de señas">
+            <div class="avatar__status" aria-live="polite" id="avatar-status">IDLE</div>
+            <svg class="avatar__svg" id="avatar-svg" viewBox="0 0 560 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="svaiBoneGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#00f0ff"/>
+                  <stop offset="60%" stop-color="#7b2bff"/>
+                  <stop offset="100%" stop-color="#ff2d95"/>
+                </linearGradient>
+              </defs>
+              <g id="avatar-root"></g>
+            </svg>
+          </div>
+          <div class="avatar__caption" id="avatar-caption" aria-live="polite" aria-label="Subtítulo de lo que reproduce el avatar"></div>
+          <div class="row-wrap">
+            <button id="btn-avatar-play" class="btn btn--primary" type="button">Reproducir texto</button>
+            <button id="btn-avatar-stop" class="btn btn--ghost" type="button">Detener</button>
+            <label class="row" style="gap:var(--sp-2)">
+              <input type="checkbox" id="cb-use-clips" />
+              <span class="muted">Usar clips locales si existen</span>
+            </label>
+          </div>
+        </article>
+        <!-- COLUMNA DERECHA: CHAT -->
+        <aside class="chat">
+          <div class="chat__list" id="chat-list" aria-live="polite" aria-label="Conversación"></div>
+          <div class="composer">
+            <textarea id="chat-input" class="textarea grow" placeholder="Escribe el mensaje para el avatar…" aria-label="Mensaje para el avatar"></textarea>
+            <div class="stack-2">
+              <button id="btn-send" class="btn btn--primary" type="button">
+                <svg class="btn__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 2l13 6-13 6V9.2L11 8 1.5 6.8V2z"/></svg>
+                Enviar
+              </button>
+              <button id="btn-send-voice" class="btn btn--ghost btn--sm" type="button">Enviar vía voz</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ###########################################################################
+         PANEL 3: VOZ AL AVATAR
+         ########################################################################### -->
+    <section id="panel-voice" class="panel" role="tabpanel" aria-labelledby="tab-voice" hidden>
+      <header class="panel__head">
+        <div class="panel__title">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 1 1-10 0H5a7 7 0 0 0 14 0h-2z"/></svg>
+          <h2>Entrada por voz → Avatar</h2>
+        </div>
+        <div class="panel__desc">
+          <p>Usa el micrófono (Web Speech API) para dictar texto. En modo offline o en navegadores sin soporte, se activa el fallback de escritura manual.</p>
+        </div>
+      </header>
+      <div class="panel__body stack">
+        <div class="mic" id="mic-panel" data-listening="false">
+          <button id="btn-mic" class="mic__btn" type="button" aria-label="Activar/desactivar reconocimiento de voz">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 1 1-10 0H5a7 7 0 0 0 14 0h-2zM11 3h2v2h-2zM11 19h2v2h-2z"/></svg>
+            <span class="mic__ring"></span>
+            <span class="mic__ring"></span>
+          </button>
+          <div class="wave" aria-hidden="true" id="mic-wave">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="mic__label" id="mic-label">Toca para empezar a dictar</div>
+        </div>
+        <div class="transcript" id="stt-transcript" aria-live="polite">
+          <div id="stt-final"></div>
+          <div class="transcript__interim" id="stt-interim"></div>
+        </div>
+        <div class="row-wrap">
+          <button id="btn-stt-send" class="btn btn--primary" type="button">Enviar al chat + avatar</button>
+          <button id="btn-stt-clear" class="btn btn--ghost" type="button">Limpiar</button>
+          <span id="stt-support" class="muted mono">Comprobando soporte Web Speech…</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ###########################################################################
+         PANEL 4: SOS DE DOBLE FUNCIÓN
+         ########################################################################### -->
+    <section id="panel-sos" class="panel" role="tabpanel" aria-labelledby="tab-sos" hidden>
+      <header class="panel__head">
+        <div class="panel__title">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+          <h2>Emergencia SOS — doble función</h2>
+        </div>
+        <div class="panel__desc">
+          <p>Cuenta atrás de 3 segundos con cancelación. Al activar, llama al teléfono y, tras volver de la llamada, ofrece enviar un mensaje de auxilio preconfigurado a WhatsApp/SMS.</p>
+        </div>
+      </header>
+      <div class="panel__body sos">
+        <button id="btn-sos" class="sos__btn" type="button" aria-live="assertive">
+          <span>SOS</span>
+          <small>Toque y espere 3s</small>
+          <div class="sos__count" id="sos-count" hidden aria-hidden="true">3</div>
+          <button id="btn-sos-cancel" class="btn btn--ghost sos__cancel" type="button" hidden>Cancelar</button>
+        </button>
+
+        <div class="stack-2" style="width:100%;max-width:680px">
+          <div class="card">
+            <div class="kicker">Contacto de emergencia</div>
+            <div id="sos-contacts"></div>
+            <div class="empty" id="sos-empty" hidden>
+              <p>No hay contacto configurado aún.</p>
+            </div>
+            <details class="stack-2" style="margin-top:var(--sp-3)">
+              <summary class="muted">Añadir/editar contacto</summary>
+              <form id="sos-form" class="stack-2" autocomplete="off">
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field__label" for="sos-name">Nombre</label>
+                    <input class="input" id="sos-name" name="name" required placeholder="Nombre del familiar" />
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="sos-rel">Relación</label>
+                    <input class="input" id="sos-rel" name="relation" placeholder="Ej. Pareja, Hermano, Padre" />
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field__label" for="sos-dial">Código de país</label>
+                    <select class="select" id="sos-dial" name="dial_code">
+                      <option value="+503">El Salvador (+503)</option>
+                      <option value="+1">EE. UU. (+1)</option>
+                      <option value="+52">México (+52)</option>
+                      <option value="+502">Guatemala (+502)</option>
+                      <option value="+504">Honduras (+504)</option>
+                      <option value="+505">Nicaragua (+505)</option>
+                      <option value="+506">Costa Rica (+506)</option>
+                      <option value="+507">Panamá (+507)</option>
+                      <option value="+34">España (+34)</option>
+                      <option value="+39">Italia (+39)</option>
+                      <option value="+33">Francia (+33)</option>
+                      <option value="+49">Alemania (+49)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="sos-phone">Teléfono (sin +)</label>
+                    <input class="input" id="sos-phone" name="phone_raw" inputmode="tel" pattern="[0-9 \-\(\)]+" placeholder="Ej. 70123456" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="sos-msg">Mensaje de auxilio preconfigurado</label>
+                  <textarea class="textarea" id="sos-msg" name="msg" rows="3">Necesito ayuda urgente. Este mensaje se envió desde SIGN-VOICE AI.</textarea>
+                </div>
+                <div class="row-wrap">
+                  <button class="btn btn--primary" type="submit">Guardar contacto</button>
+                  <button class="btn btn--ghost" type="button" id="sos-clear">Borrar todos</button>
+                </div>
+              </form>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ###########################################################################
+         PANEL 5: AJUSTES
+         ########################################################################### -->
+    <section id="panel-settings" class="panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <header class="panel__head">
+        <div class="panel__title">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a6.95 6.95 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.82 2h-3.64a.5.5 0 0 0-.5.42L9.32 4.96a6.95 6.95 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L3.14 8.94a.5.5 0 0 0 .12.64l2.03 1.58c-.03.31-.05.63-.05.94s.02.63.05.94L3.26 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96a6.95 6.95 0 0 0 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.64a.5.5 0 0 0 .5-.42l.36-2.54a6.95 6.95 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+          <h2>Ajustes</h2>
+        </div>
+        <div class="panel__desc">
+          <p>Accesibilidad, idioma de señas, filtro de modismos, nube opcional (Supabase) y almacenamiento.</p>
+        </div>
+      </header>
+      <div class="panel__body stack">
+        <!-- Accesibilidad -->
+        <div class="card">
+          <div class="kicker">Accesibilidad</div>
+          <div class="list-divided">
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Reducir movimiento</div>
+                <div class="setting__desc">Desactiva láser, anillos y ondas. Respeta prefers-reduced-motion del sistema.</div>
+              </div>
+              <label class="switch">
+                <input class="switch__input" id="opt-motion" type="checkbox" />
+                <span class="switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Alto contraste</div>
+                <div class="setting__desc">Más contraste para bordes y texto. Respeta prefers-contrast del sistema.</div>
+              </div>
+              <label class="switch">
+                <input class="switch__input" id="opt-contrast" type="checkbox" />
+                <span class="switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Texto grande</div>
+                <div class="setting__desc">Aumenta la escala tipográfica un paso.</div>
+              </div>
+              <label class="switch">
+                <input class="switch__input" id="opt-textlg" type="checkbox" />
+                <span class="switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reconocimiento / Avatar -->
+        <div class="card">
+          <div class="kicker">Reconocimiento y avatar</div>
+          <div class="list-divided">
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Idioma de señas</div>
+                <div class="setting__desc">Elige entre LSE (español) o ASL (inglés).</div>
+              </div>
+              <div class="segmented" role="radiogroup" aria-label="Idioma de señas">
+                <input type="radio" id="slang-lse" name="sign-lang" value="LSE" checked />
+                <label for="slang-lse">LSE</label>
+                <input type="radio" id="slang-asl" name="sign-lang" value="ASL" />
+                <label for="slang-asl">ASL</label>
+              </div>
+            </div>
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">Filtro de modismos latinoamericanos</div>
+                <div class="setting__desc">Neutraliza modismos antes de enviar al avatar. El mensaje de SOS nunca pasa por el filtro.</div>
+              </div>
+              <label class="switch">
+                <input class="switch__input" id="opt-slang" type="checkbox" checked />
+                <span class="switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="setting">
+              <div class="setting__info">
+                <div class="setting__title">TTS al leer texto reconocido</div>
+                <div class="setting__desc">Usa speechSynthesis cuando pulses "Reproducir por voz".</div>
+              </div>
+              <label class="switch">
+                <input class="switch__input" id="opt-tts-rec" type="checkbox" checked />
+                <span class="switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Almacenamiento / Nube -->
+        <div class="card card--cloud">
+          <div class="spread">
+            <div>
+              <div class="kicker">Nube opcional (Supabase)</div>
+              <p class="muted">Los 5 pilares funcionan 100% local. Activa la nube SOLO para sincronizar contactos SOS y modismos personales. Nunca se envían datos si las llaves están vacías.</p>
+            </div>
+            <span class="badge-state" data-state="disabled" id="cloud-state">DESHABILITADO</span>
+          </div>
+          <div class="stack-2" style="margin-top:var(--sp-3)">
+            <div class="field">
+              <label class="field__label" for="supabase-url">SUPABASE_URL</label>
+              <input class="input" id="supabase-url" placeholder="https://xxxx.supabase.co" autocomplete="off" />
+              <p class="field__hint">Pega aquí tu URL (solo tu proyecto). Se guarda en localStorage.</p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="supabase-key">SUPABASE_ANON_KEY</label>
+              <input class="input" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off" />
+              <p class="field__hint">Clave anónima (pública). Nunca pegues la SERVICE_ROLE_KEY.</p>
+            </div>
+            <div class="row-wrap">
+              <button id="btn-cloud-test" class="btn btn--primary" type="button">Guardar y probar conexión</button>
+              <button id="btn-cloud-clear" class="btn btn--ghost" type="button">Borrar credenciales</button>
+              <span class="muted mono" id="cloud-info">Estado: no configurado</span>
+            </div>
+            <div class="danger-zone">
+              <strong>Privacidad:</strong> SIGN-VOICE AI no envía telemetría. Los datos sólo viajan a Supabase si configuras las llaves de forma manual. Todo el reconocimiento y el avatar siguen on-device por defecto.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="spread">
+            <div class="kicker">Almacenamiento del dispositivo</div>
+            <span class="muted mono" id="storage-info">Calculando…</span>
+          </div>
+          <p class="muted" style="margin-top:var(--sp-2)">Uso aproximado (localStorage + cachés PWA). Puedes liberar el motor de IA (19 MB) desde el panel "Reconocer señas".</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fin de paneles -->
+  </main>
+
+  <!-- =============================================================================
+       OVERLAYS GLOBALES
+       ============================================================================= -->
+  <div id="toast-host" class="toast-host" aria-live="polite" aria-label="Notificaciones"></div>
+
+  <!-- =============================================================================
+       SCRIPTS: orden crítico
+       -----------------------------------------------------------------------------
+       1. Módulos core/UI base (config, bus, dom, i18n, store) → deben existir
+       2. Núcleo AI/Avatar/Speech/Safety → cargados antes de app.js
+       3. app.js → orquestador (arranque)
+       En producción estos son módulos ES con type=module. No se usa defer con
+       módulos (se cargan diferidos automáticamente).                             -->
+  <script type="module" src="./js/core/config.js"></script>
+  <script type="module" src="./js/core/bus.js"></script>
+  <script type="module" src="./js/core/store.js"></script>
+  <script type="module" src="./js/core/net.js"></script>
+  <script type="module" src="./js/core/dom.js"></script>
+  <script type="module" src="./js/core/i18n.js"></script>
+  <script type="module" src="./js/core/supabaseConfig.js"></script>
+
+  <script type="module" src="./js/ui/hud.js"></script>
+  <script type="module" src="./js/ui/recognizerPanel.js"></script>
+  <script type="module" src="./js/ui/chat.js"></script>
+  <script type="module" src="./js/ui/mic.js"></script>
+  <script type="module" src="./js/ui/sosPanel.js"></script>
+  <script type="module" src="./js/ui/settings.js"></script>
+  <script type="module" src="./js/ui/cloudPanel.js"></script>
+
+  <script type="module" src="./js/ai/handTracker.js"></script>
+  <script type="module" src="./js/ai/features.js"></script>
+  <script type="module" src="./js/ai/fingerspell.js"></script>
+  <script type="module" src="./js/ai/sequencer.js"></script>
+
+  <script type="module" src="./js/avatar/rig.js"></script>
+  <script type="module" src="./js/avatar/poses.js"></script>
+  <script type="module" src="./js/avatar/player.js"></script>
+  <script type="module" src="./js/avatar/clipAdapter.js"></script>
+
+  <script type="module" src="./js/speech/stt.js"></script>
+  <script type="module" src="./js/speech/tts.js"></script>
+
+  <script type="module" src="./js/safety/slangFilter.js"></script>
+  <script type="module" src="./js/safety/sos.js"></script>
+
+  <script type="module" src="./js/cloud/supabase.js"></script>
+  <script type="module" src="./js/cloud/auth.js"></script>
+  <script type="module" src="./js/cloud/sync.js"></script>
+  <script type="module" src="./js/cloud/repo.js"></script>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
