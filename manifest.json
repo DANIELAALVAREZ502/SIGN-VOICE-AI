@@ -1,0 +1,81 @@
+{
+  "id": "/?source=pwa",
+  "name": "SIGN-VOICE AI — Puente de Lengua de Señas",
+  "short_name": "SIGN-VOICE",
+  "description": "Traducción bidireccional de lengua de señas (LSE/ASL) entre texto, voz y avatar. Funciona 100% sin conexión a internet en el dispositivo.",
+  "lang": "es",
+  "dir": "ltr",
+
+  "start_url": "./index.html",
+  "scope": "./",
+
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser", "minimal-ui"],
+  "orientation": "any",
+
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
+
+  "categories": ["accessibility", "utilities", "productivity", "education", "medical"],
+
+  "prefer_related_applications": false,
+
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Traducir señas",
+      "short_name": "Cámara",
+      "description": "Abrir directamente el reconocedor de lengua de señas.",
+      "url": "./index.html?view=signs",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Hablar al avatar",
+      "short_name": "Micrófono",
+      "description": "Abrir directamente la entrada por voz hacia el avatar.",
+      "url": "./index.html?view=avatar",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Emergencia SOS",
+      "short_name": "SOS",
+      "description": "Abrir directamente el módulo de emergencia.",
+      "url": "./index.html?view=sos",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+
+  "edge_side_panel": {
+    "preferred_width": 420
+  }
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070d" />
+  <title>Sin conexión — SIGN-VOICE AI</title>
+  <style>
+    /* Variables mínimas para representar la estética Cyber-HUD */
+    :root {
+      --bg-deep: #05070d;
+      --bg-panel: #0b1020;
+      --cyan: #00f0ff;
+      --violet: #7b2bff;
+      --magenta: #ff2d95;
+      --mint: #00ff9c;
+      --text-primary: #e7ecff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 50% 0%, rgba(0,240,255,0.06), transparent 70%),
+        linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%);
+      color: var(--text-primary);
+      font-family: system-ui, -apple-system, Segoe UI, Inter, Roboto, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1rem, 3vw, 2rem);
+      text-align: center;
+    }
+
+    main {
+      max-width: 72ch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(1rem, 3vw, 2rem);
+      padding: clamp(1.25rem, 4vw, 2.5rem);
+      border-radius: clamp(1rem, 3vw, 1.5rem);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+      border: 1px solid rgba(0,240,255,0.25);
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.25),
+        0 40px 80px -40px rgba(123,43,255,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(6px) saturate(120%);
+      -webkit-backdrop-filter: blur(6px) saturate(120%);
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+
+    p {
+      opacity: 0.92;
+      line-height: 1.6;
+      font-size: clamp(0.98rem, 2.5vw, 1.05rem);
+      white-space: normal;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,255,156,0.45);
+      background: radial-gradient(400px 120px at 50% 0%, rgba(0,255,156,0.18), transparent 70%);
+      color: var(--mint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.85rem;
+      box-shadow: 0 0 0 1px rgba(0,255,156,0.15) inset, 0 0 60px -30px rgba(0,255,156,0.9);
+    }
+
+    .dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 3px rgba(0,255,156,0.25), 0 0 40px -10px rgba(0,255,156,1);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: clamp(0.5rem, 2vw, 0.75rem);
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(0,240,255,0.45);
+      background: linear-gradient(180deg, rgba(0,240,255,0.22) 0%, rgba(0,240,255,0.08) 100%);
+      color: var(--text-primary);
+      padding: 0.75rem 1.25rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: clamp(0.98rem, 2.2vw, 1rem);
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 20px 60px -30px rgba(0,240,255,0.9);
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px) scale(0.995); }
+    button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+    .note {
+      max-width: 60ch;
+      opacity: 0.78;
+      font-size: clamp(0.92rem, 2.2vw, 0.98rem);
+      line-height: 1.65;
+    }
+
+    .glow-bar {
+      width: min(70vw, 320px);
+      height: 4px;
+      border-radius: 999px;
+      background: radial-gradient(100% 100% at 50% 0%, rgba(123,43,255,0.45), transparent 70%),
+                  linear-gradient(90deg, rgba(0,240,255,0.25), rgba(255,45,149,0.25));
+      box-shadow: 0 0 60px -30px rgba(123,43,255,0.95);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span>Modo Offline</span>
+    </div>
+    <h1>No hay conexión a internet</h1>
+    <p>
+      SIGN-VOICE AI sigue funcionando en modo híbrido. Todos los módulos esenciales
+      (reconocimiento con cámara, avatar, chat, filtro de modismos, entrada por texto
+      y SOS) permanecen disponibles en este dispositivo.
+    </p>
+    <div class="glow-bar" aria-hidden="true"></div>
+    <div class="actions">
+      <button type="button" onclick="location.reload()">Volver a intentar</button>
+      <button type="button" onclick="location.href='./index.html'">Abrir la aplicación</button>
+    </div>
+    <p class="note">
+      Si has descargado el <strong>motor de IA (19 MB)</strong> desde Ajustes, el
+      reconocedor de señas funcionará completamente offline. Si aún no lo has
+      descargado, sigue siendo posible usar texto, voz (según navegador), avatar
+      y el resto de funcionalidades.
+    </p>
+  </main>
+</body>
+</html>

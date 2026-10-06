@@ -1,0 +1,63 @@
+# --- Entorno local / secretos ---
+.env
+.env.*
+!.env.example
+env.js
+*.local
+
+# --- Dependencias / artefactos Node (no se usan, pero por si acaso) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Editor/OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.code-workspace
+.vscode/
+.idea/
+
+# --- Build / cachés / temporales ---
+.cache/
+dist/
+build/
+.tmp/
+.temp/
+coverage/
+*.tgz
+*.zip
+*.bak
+*.tmp
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Service Worker cachés internas (opcional, no versionar) ---
+workbox-*.js
+
+# --- Herramientas propias ---
+tools/*.log
+tools/*.tmp
+
+# --- NOTA SOBRE VENDOR ---
+# vendor/ contiene ~19 MB de MediaPipe (vision_bundle.mjs + wasm + hand_landmarker.task)
+# Puede subirse a Git (no es un secret). Si tu conexión es limitada, puedes ignorarlo
+# temporalmente añadiendo 'vendor/' a este fichero. En ese caso, al desplegar en
+# Netlify/Vercel tendrás que descargarlo en el primer arranque ON-LINE o subirlo
+# manualmente. Para este proyecto se recomienda versionarlo.
+# vendor/
+
+# --- NOTA SOBRE ENV.JS ---
+# env.js puede sobreescribir SUPABASE_URL/SUPABASE_ANON_KEY desde variables en CI/CD.
+# NUNCA commits llaves reales. Si las pegaste, ejecuta:
+#   git rm --cached env.js
+#   git commit -m "remove env.js with secrets"
+
+# --- Archivos propios de desarrollo ---
+*.ps1.bak
+*.cmd.bak

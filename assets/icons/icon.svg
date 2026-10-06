@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SIGN-VOICE AI">
+  <defs>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="55%" stop-color="#7b2bff"/>
+      <stop offset="100%" stop-color="#ff2d95"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#05070d"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect x="10" y="10" width="492" height="492" rx="102" fill="none"
+        stroke="url(#neon)" stroke-width="3" opacity="0.65"/>
+
+  <g opacity="0.16" stroke="#00f0ff" stroke-width="1">
+    <path d="M64 96h384M64 160h384M64 224h384M64 288h384M64 352h384M64 416h384"/>
+    <path d="M96 64v384M160 64v384M224 64v384M288 64v384M352 64v384M416 64v384"/>
+  </g>
+
+  <g filter="url(#glow)" fill="none" stroke="url(#neon)"
+     stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M148 356 L196 232"/>
+    <path d="M148 356 L206 300"/>
+    <path d="M196 232 L232 150"/>
+    <path d="M232 150 L268 232"/>
+    <path d="M268 232 L292 168"/>
+    <path d="M292 168 L318 250"/>
+    <path d="M318 250 L340 204"/>
+    <path d="M206 300 L246 268"/>
+  </g>
+
+  <circle cx="196" cy="232" r="15" fill="#00f0ff"/>
+  <circle cx="232" cy="150" r="15" fill="#7b2bff"/>
+  <circle cx="268" cy="232" r="15" fill="#7b2bff"/>
+  <circle cx="292" cy="168" r="15" fill="#ff2d95"/>
+  <circle cx="318" cy="250" r="15" fill="#ff2d95"/>
+  <circle cx="340" cy="204" r="15" fill="#ff2d95"/>
+  <circle cx="148" cy="356" r="17" fill="#00ff9c"/>
+
+  <g opacity="0.95">
+    <rect x="96" y="404" width="150" height="14" rx="7" fill="#00f0ff" opacity="0.9"/>
+    <rect x="256" y="404" width="62" height="14" rx="7" fill="#7b2bff" opacity="0.9"/>
+    <rect x="328" y="404" width="88" height="14" rx="7" fill="#ff2d95" opacity="0.9"/>
+  </g>
+
+  <g opacity="0.55" stroke="#00ff9c" stroke-width="2" fill="none">
+    <path d="M52 60h40M52 60v40"/>
+    <path d="M460 60h-40M460 60v40"/>
+    <path d="M52 452h40M52 452v-40"/>
+    <path d="M460 452h-40M460 452v-40"/>
+  </g>
+</svg>

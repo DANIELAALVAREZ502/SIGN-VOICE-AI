@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "lang": "en-ASL",
+    "name": "Base ASL dictionary (demo)",
+    "note": "Demo base dictionary (A–Z subset). You may add your own clips under assets/signs/clips/<key>.mp4",
+    "author": "SIGN-VOICE AI",
+    "version": "1.0.0",
+    "license": "CC0-1.0"
+  },
+  "letters": {
+    "A": {"desc": "A handshape"},
+    "B": {"desc": "B handshape"},
+    "C": {"desc": "C handshape"},
+    "D": {"desc": "D handshape"},
+    "E": {"desc": "E handshape"},
+    "F": {"desc": "F handshape"},
+    "I": {"desc": "I handshape"},
+    "L": {"desc": "L handshape"},
+    "O": {"desc": "O handshape"},
+    "S": {"desc": "S handshape"},
+    "T": {"desc": "T handshape"},
+    "U": {"desc": "U handshape"},
+    "V": {"desc": "V handshape"},
+    "W": {"desc": "W handshape"},
+    "Y": {"desc": "Y handshape"}
+  },
+  "words": {
+    "hello": { "desc": "Greeting" },
+    "help":  { "desc": "Help" }
+  }
+}
