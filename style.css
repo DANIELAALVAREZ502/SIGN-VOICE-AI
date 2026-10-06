@@ -409,6 +409,10 @@ button { cursor: pointer; }
    que 100vh desborde y "salte" el scroll.
    ========================================================================== */
 
+/* Fila 1 = HUD · Fila 2 = contenido · Fila 3 = tabs (patrón app nativa).
+   El orden explícito de cada hijo permite REORDENAR las filas entre móvil
+   y escritorio sin duplicar el marcado: en el DOM van HUD → tabs → main,
+   y solo se intercambia el valor `order` en la media query de escritorio. */
 .app {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -416,6 +420,10 @@ button { cursor: pointer; }
   padding-left: var(--pad-safe-l);
   padding-right: var(--pad-safe-r);
 }
+
+.hud         { order: 1; }
+.app__main   { order: 2; }
+.tabs        { order: 3; }
 
 .app__main {
   width: 100%;
@@ -1661,6 +1669,16 @@ button { cursor: pointer; }
    Las pestañas pasan de barra inferior a fila superior dentro del main,
    y los paneles con salida larga admiten dos columnas.                  */
 @media (min-width: 960px) {
+  /* Escritorio: las tabs suben justo debajo del HUD (fila 2) y el
+     contenido pasa a la fila 3. Solo cambia `order`, no el DOM.        */
+  .app {
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .hud { order: 1; }
+  .tabs { order: 2; }
+  .app__main { order: 3; }
+
   .app__main {
     display: grid;
     grid-template-columns: 1fr;
@@ -1669,7 +1687,6 @@ button { cursor: pointer; }
   }
 
   .tabs {
-    order: -1;
     justify-content: center;
     position: sticky;
     top: calc(var(--hud-h) + var(--sp-2));
@@ -1702,11 +1719,9 @@ button { cursor: pointer; }
 }
 
 /* En móvil la navegación queda anclada abajo (patrón app nativa).
-   Se aplica AQUÍ para que en pantallas pequeñas el orden visual sea:
-   HUD → contenido → tabs (aunque en el DOM las tabs van antes del main). */
+   El DOM es HUD → tabs → main, pero con `order` del bloque base
+   (hud 1 · main 2 · tabs 3) la barra inferior se pinta en la fila 3. */
 @media (max-width: 959.98px) {
-  .app { grid-template-rows: auto 1fr auto; }
-
   .tabs {
     position: sticky;
     bottom: 0;
@@ -1721,9 +1736,6 @@ button { cursor: pointer; }
     -webkit-backdrop-filter: blur(12px);
     padding: var(--sp-2) var(--sp-2);
     padding-bottom: calc(var(--sp-2) + var(--pad-safe-b));
-    /* En móvil el orden del grid es HUD/main/tabs: las tabs se pintan
-       en la última fila aunque estén primeras en el DOM.               */
-    order: 2;
   }
 
   .tab {
