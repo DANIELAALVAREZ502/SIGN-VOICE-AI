@@ -1242,6 +1242,38 @@ button { cursor: pointer; }
   overflow: visible;
 }
 
+/* Clip de vídeo superpuesto cuando existe. Estado controlado por
+   #avatar-stage[data-clip='on'|'off']. Conmutación suave (CO=clipAdapter) */
+.avatar__clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--clip-fade, 260ms) ease-in-out;
+}
+
+/* Cuando hay clip activo: oculta el rig SVG y muestra el vídeo. */
+#avatar-stage[data-clip='on'] .avatar__svg {
+  opacity: 0;
+  transition: opacity var(--clip-fade, 260ms) ease-in-out;
+  pointer-events: none;
+}
+#avatar-stage[data-clip='on'] .avatar__clip {
+  opacity: 1;
+}
+
+/* Estado inactivo: asegura que el rig quede visible */
+#avatar-stage[data-clip='off'] .avatar__svg {
+  opacity: 1;
+  transition: opacity var(--clip-fade, 260ms) ease-in-out;
+}
+#avatar-stage[data-clip='off'] .avatar__clip {
+  opacity: 0;
+}
+
 .avatar__status {
   position: absolute;
   top: var(--sp-2);
