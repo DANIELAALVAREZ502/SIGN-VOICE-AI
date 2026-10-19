@@ -41,7 +41,7 @@ Para utilizar la aplicación, se deben obtener los archivos del proyecto desde e
 Si el sistema requiere servicios adicionales, como una API, un modelo de inteligencia artificial o una base de datos(SQL,MYSQL,SUPABSE), estos deberán configurarse antes de ejecutar la aplicación.
 
 Base de datos:
-La documentación de la base de datos incluirá su diseño, las entidades, las relaciones y el script SQL correspondiente, de acuerdo con la implementación del sistema.
+La documentación de la base de datos incluirá su diseño, las entidades, las relaciones y la base de datos SUPABASE, de acuerdo con la implementación del sistema.
 
 Pruebas:
 Se realizarán pruebas para verificar el acceso a la cámara, la detección de manos, la captura de muestras, el reconocimiento de señas y la presentación de resultados.
