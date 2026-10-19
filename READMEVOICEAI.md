@@ -38,7 +38,7 @@ Requisitos del sistema:
 
 Instalación y ejecución:
 Para utilizar la aplicación, se deben obtener los archivos del proyecto desde el repositorio y seguir las instrucciones de instalación correspondientes a las tecnologías utilizadas.
-Si el sistema requiere servicios adicionales, como una API, un modelo de inteligencia artificial o una base de datos(SQL,MYSQL,SUPABSE), estos deberán configurarse antes de ejecutar la aplicación.
+Si el sistema requiere servicios adicionales, como una API, un modelo de inteligencia artificial o una base de datos(SQL,MYSQL,SUPABASE), estos deberán configurarse antes de ejecutar la aplicación.
 
 Base de datos:
 La documentación de la base de datos incluirá su diseño, las entidades, las relaciones y la base de datos SUPABASE, de acuerdo con la implementación del sistema.
