@@ -27,7 +27,7 @@ Funcionalidades:
 
 Tecnologías:
 El proyecto contempla tecnologías para el desarrollo de la interfaz, el reconocimiento de manos, el procesamiento mediante inteligencia artificial y el almacenamiento de información.
-Entre las herramientas consideradas se encuentran HTML, CSS, JavaScript, MediaPipe Hands y una base de datos, de acuerdo con la implementación final.
+Entre las herramientas consideradas se encuentran HTML, CSS, JavaScript, entre otros y una base de datos, de acuerdo con la implementación final.
 
 Requisitos del sistema:
 - Computadora o dispositivo compatible.
