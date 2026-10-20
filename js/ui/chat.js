@@ -52,7 +52,7 @@ let slangLoaded = false;
  * Carga perezosa del módulo de seguridad `slangFilter`.
  * Nunca bloquea la UI: si falla (404 en file:// o módulo aún no escrito),
  * devuelve un passthrough seguro ({neutralize: (x)=>x}).
- * @returns {Promise<{neutralize:(s:string,p?:any)=>string}|null>}
+ * @returns {Promise<{analyze?:(s:string,p?:any)=>{out:string,changes:any[]},neutralize:(s:string,p?:any)=>string}|null>}
  */
 async function loadSlang() {
   if (slangLoaded) return slangMod;
@@ -60,14 +60,16 @@ async function loadSlang() {
   try {
     // Import dinámico ESM: solo cuando se necesita neutralizar
     const mod = await import('../safety/slangFilter.js');
-    slangMod = mod && mod.neutralize ? mod : { neutralize: (x) => x };
+    slangMod = mod && (mod.analyze || mod.neutralize)
+      ? mod
+      : { neutralize: (x) => x };
     // init opcional (idempotente) si el módulo lo exporta
     if (slangMod.init && typeof slangMod.init === 'function') {
       try { await slangMod.init(); } catch (_) { /* ignora */ }
     }
     return slangMod;
   } catch (err) {
-    // Fallback silencioso: sin filtro disponible (aún no implementado)
+    // Fallback silencioso: sin filtro disponible
     slangMod = { neutralize: (s) => String(s || '') };
     return slangMod;
   }
@@ -75,12 +77,12 @@ async function loadSlang() {
 
 /**
  * Neutraliza texto aplicando filtro de modismos si está habilitado.
- * Respeta skipFilter (SOS). También respeta bandera store 'slang.enabled'
- * (defecto true según CONFIG en fases previas, aquí leemos con fallback).
+ * Respeta skipFilter (SOS). Usa analyze() cuando existe para obtener la
+ * lista de cambios (original → neutral) que la UI muestra y permite revertir.
  *
  * @param {string} text
  * @param {{skipFilter?:boolean}} opts
- * @returns {Promise<{out:string,diff?:{before:string,after:string}}>}
+ * @returns {Promise<{out:string,diff?:{before:string,after:string,changes:any[]}}>}
  */
 async function applyFilter(text, opts = {}) {
   const raw = String(text || '');
@@ -92,12 +94,21 @@ async function applyFilter(text, opts = {}) {
   if (!enabled) return { out: raw };
 
   const mod = await loadSlang();
-  const fn = mod?.neutralize;
-  if (typeof fn !== 'function') return { out: raw };
 
-  const out = fn(raw, {});
+  // Preferir analyze() (devuelve cambios detallados); si no, neutralize().
+  let out = raw;
+  let changes = [];
+  if (typeof mod?.analyze === 'function') {
+    const res = mod.analyze(raw, {});
+    out = res?.out ?? raw;
+    changes = Array.isArray(res?.changes) ? res.changes : [];
+  } else if (typeof mod?.neutralize === 'function') {
+    out = mod.neutralize(raw, {});
+    if (out !== raw) changes = [{ before: raw, after: out, severity: 'low' }];
+  }
+
   if (out === raw) return { out: raw };
-  return { out, diff: { before: raw, after: out } };
+  return { out, diff: { before: raw, after: out, changes } };
 }
 
 // --- Renderizado de mensajes ---------------------------------------------

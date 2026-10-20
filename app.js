@@ -21,10 +21,33 @@ import { net } from './js/core/net.js';
 import { dom } from './js/core/dom.js';
 import { i18n } from './js/core/i18n.js';
 import { hud } from './js/ui/hud.js';
+import { recognizerPanel } from './js/ui/recognizerPanel.js';
+import { chat } from './js/ui/chat.js';
+import { player } from './js/avatar/player.js';
+import { stt } from './js/speech/stt.js';
+import { tts } from './js/speech/tts.js';
+import { mic } from './js/ui/mic.js';
+import { cloudPanel } from './js/ui/cloudPanel.js';
+import { sync } from './js/cloud/sync.js';
 
 function logBoot(msg, extra = {}) {
   if (typeof console !== 'undefined' && console.info) {
     console.info(`[SVAI v${APP_VERSION}] ${msg}`, extra);
+  }
+}
+
+/**
+ * Inicializa un panel/módulo de forma aislada. Todos los módulos exponen
+ * un singleton con init() idempotente y null-safe. Un fallo aquí nunca debe
+ * impedir el arranque del resto de la app (offline-first: degradar, no caer).
+ * @param {string} name
+ * @param {{init?:()=>void}} mod
+ */
+function initPanel(name, mod) {
+  try {
+    if (mod && typeof mod.init === 'function') mod.init();
+  } catch (e) {
+    console.warn(`[app] init de ${name} falló, continuando:`, e);
   }
 }
 
@@ -59,7 +82,19 @@ export async function boot() {
   // 4) Sincronización de pestañas (tabs) mínima
   syncTabs();
 
-  // 5) Registrar SW si existe
+  // 5) Paneles funcionales (cada módulo es null-safe: si su DOM no existe,
+  //    su init() no rompe el arranque). Se aíslan con try/catch para que un
+  //    fallo puntual (p. ej. webview sin Speech API) no bloquee el resto.
+  initPanel('recognizerPanel', recognizerPanel);
+  initPanel('chat', chat);
+  initPanel('player', player);
+  initPanel('stt', stt);
+  initPanel('tts', tts);
+  initPanel('mic', mic);
+  initPanel('cloudPanel', cloudPanel);
+  initPanel('sync', sync);
+
+  // 6) Registrar SW si existe
   registerSW();
 
   logBoot('boot:done');
